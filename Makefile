@@ -5,7 +5,9 @@ CFLAGS	=-g -Wall
 
 SRCS = $(wildcard $(SRCDIR)/*.c)
 OBJS = $(patsubst $(SRCDIR)/%.c, $(OUTDIR)/%.o, $(SRCS)) 
-EXE = quine_mccluskey
+EXE = hw1.o
+INPUT = sample_input
+OUTPUT = sample_output
 
 all: $(EXE)
 
@@ -22,11 +24,11 @@ SHELL_HACK := $(shell mkdir -p $(OUTDIR))
 format:
 	clang-format -i src/*.c src/*.h
 
-run:
-	./$(EXE)
+demo:
+	./$(EXE) $(INPUT) $(OUTPUT)
 
 debug:
-	gdb -q $(EXE)
+	gdb -q --args $(EXE) $(INPUT) $(OUTPUT)
 
 clean:
 	rm -f $(OUTDIR)/* ./$(EXE)
