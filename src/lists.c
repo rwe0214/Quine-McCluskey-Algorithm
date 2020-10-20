@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "lists.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -37,32 +37,18 @@ void del_entry(node_t **head, node_t *target)
         indirect = &(*indirect)->next;
     *indirect = target->next;
     free(target);
+    target = NULL;
 }
 
 void print_list(node_t *head)
 {
     for (node_t *iter = head; iter; iter = iter->next)
-        printf("%d ", iter->val & MASK_EXPRESSION);
+        printf("%d ", iter->val);
     printf("\n");
 }
 
 void free_list(node_t *head)
 {
     head->next ? free_list(head->next) : free(head);
-}
-
-void print_minterm(uint encode, int n, int var_style)
-{
-    uint exp = (encode & MASK_EXPRESSION);
-    uint dc = (encode & MASK_DC_STAT) >> DC_STAT_POS;
-    char VARIABLE[10] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'};
-    for (int i = n - 1; i >= 0; i--) {
-        if (dc & (1 << i)) {
-            if (exp & (1 << i)) {
-                (var_style) ? printf("%c", VARIABLE[n - 1 - i]) : printf("1");
-            } else {
-                (var_style) ? printf("%c\'", VARIABLE[n - 1 - i]) : printf("0");
-            }
-        }
-    }
+    head = NULL;
 }
