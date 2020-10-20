@@ -6,9 +6,16 @@
 #include "lists.h"
 #include "mccluskey.h"
 
+void init(char **);
 void parse_bfunc(char *, int *, node_t **, node_t **);
 void get_set(char *, node_t **, int);
+void free_mem();
 
+char input_filename[64];
+char output_filename[64];
+int var_nums;
+node_t *cares, *dont_cares, *minterms;
+node_t **hmap[10];
 
 int main(int argc, char **argv)
 {
@@ -22,12 +29,17 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    char input_filename[64];
-    char output_filename[64];
-    int var_nums;
-    node_t *cares, *dont_cares, *minterms;
-    node_t **hmap[10];
+    init(argv);
+    parse_bfunc(input_filename, &var_nums, &cares, &dont_cares);
+    hmap_build(&hmap[0], cares, dont_cares, var_nums);
+    run_mccluskey(hmap, var_nums);
+    print_hmap(hmap, var_nums);
+    free_mem();
 
+    return 0;
+}
+
+void init(char **argv){
     init_list(cares);
     init_list(dont_cares);
     init_list(minterms);
@@ -35,17 +47,6 @@ int main(int argc, char **argv)
         init_list(hmap[i]);
     strncpy(input_filename, argv[1], 64);
     strncpy(output_filename, argv[2], 64);
-
-    parse_bfunc(input_filename, &var_nums, &cares, &dont_cares);
-    hmap_build(&hmap[0], cares, dont_cares, var_nums);
-
-    run_mccluskey(hmap, var_nums);
-    print_hmap(hmap, var_nums);
-
-    free_list(cares);
-    free_list(dont_cares);
-    free_map(hmap, var_nums);
-    return 0;
 }
 
 void parse_bfunc(char *input_file,
@@ -86,3 +87,8 @@ void get_set(char *str, node_t **head, int var_nums)
     }
 }
 
+void free_mem(){
+    free_list(cares);
+    free_list(dont_cares);
+    free_map(hmap, var_nums);
+}
