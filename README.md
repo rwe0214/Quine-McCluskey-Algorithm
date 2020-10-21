@@ -42,7 +42,7 @@ For the minterm structure, I used the $0^{th}-9^{th}$ bits for recording express
 +--------------------------------------+
 | 31 |   30-20    |   19-10  |   9-0   |
 +--------------------------------------+
-merged  none-used   cared  	  expression
+merged  none-used   cared     expression
 ```
 
 
