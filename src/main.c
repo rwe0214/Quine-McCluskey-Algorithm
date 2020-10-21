@@ -9,12 +9,13 @@
 void init(char **);
 void parse_bfunc(char *, int *, node_t **, node_t **);
 void get_set(char *, node_t **, int);
+void write_minterms(char *, node_t *, char *, char *);
 void free_mem();
 
 char input_filename[64];
 char output_filename[64];
-int var_nums;
-node_t *cares, *dont_cares, *minterms;
+int var_nums, care_num, pi_num;
+node_t *cares, *dont_cares, *prime_implicants, *min_covers;
 node_t **hmap[10];
 
 int main(int argc, char **argv)
@@ -31,18 +32,22 @@ int main(int argc, char **argv)
 
     init(argv);
     parse_bfunc(input_filename, &var_nums, &cares, &dont_cares);
-    hmap_build(&hmap[0], cares, dont_cares, var_nums);
-    run_mccluskey(hmap, var_nums);
-    print_hmap(hmap, var_nums);
+    build_hmap_col(&hmap[0], cares, dont_cares, var_nums);
+    run_mccluskey(hmap, var_nums, &prime_implicants);
+    write_minterms(output_filename, prime_implicants, ".pi", "w");
+    find_minimal_cover(&min_covers, &prime_implicants, &cares, var_nums);
+    write_minterms(output_filename, min_covers, ".mc", "a");
     free_mem();
 
     return 0;
 }
 
-void init(char **argv){
+void init(char **argv)
+{
     init_list(cares);
     init_list(dont_cares);
-    init_list(minterms);
+    init_list(prime_implicants);
+    init_list(min_covers);
     for (int i = 0; i < 10; i++)
         init_list(hmap[i]);
     strncpy(input_filename, argv[1], 64);
@@ -87,8 +92,32 @@ void get_set(char *str, node_t **head, int var_nums)
     }
 }
 
-void free_mem(){
+void write_minterms(char *output_file,
+                    node_t *minterms,
+                    char *prefix,
+                    char *mode)
+{
+    FILE *fp = fopen(output_file, mode);
+    assert(fp);
+    int buf_size = 256;
+    char *buf = (char *) malloc(buf_size * sizeof(char));
+    assert(buf);
+
+    fprintf(fp, "%s %d\n", prefix, sizeof_list(minterms));
+    print_list_minterm(minterms, var_nums, 0, '\n', fp);
+    if (prefix[1] == 'm' && prefix[2] == 'c')
+        fprintf(fp, "cost=%d", cost_minterms(minterms, var_nums));
+    else
+        fprintf(fp, "\n");
+    free(buf);
+    fclose(fp);
+}
+
+void free_mem()
+{
     free_list(cares);
     free_list(dont_cares);
+    free_list(min_covers);
+    free_list(prime_implicants);
     free_map(hmap, var_nums);
 }

@@ -18,6 +18,19 @@ void add_entry(node_t **head, uint new_value)
     *indirect = new_node;
 }
 
+/*
+ * node index start from 0
+ * this function did not handle the circustance when k is larger than list
+ * length
+ */
+uint find_kth_entry(node_t *head, uint k)
+{
+    node_t *iter;
+    for (iter = head; iter && k > 0; iter = iter->next, k--)
+        ;
+    return iter->val;
+}
+
 node_t *find_entry(node_t *head, uint val)
 {
     node_t *current = head;
@@ -40,6 +53,24 @@ void del_entry(node_t **head, node_t *target)
     target = NULL;
 }
 
+/*
+ * node index start from 0
+ * this function did not handle the circustance when k is larger than list
+ * length
+ */
+void del_kth_entry(node_t **head, int k)
+{
+    node_t **indirect = head;
+    while (*indirect && k > 0) {
+        indirect = &(*indirect)->next;
+        k--;
+    }
+    node_t *target = *indirect;
+    *indirect = target->next;
+    free(target);
+    target = NULL;
+}
+
 void print_list(node_t *head)
 {
     for (node_t *iter = head; iter; iter = iter->next)
@@ -49,6 +80,22 @@ void print_list(node_t *head)
 
 void free_list(node_t *head)
 {
-    head->next ? free_list(head->next) : free(head);
-    head = NULL;
+    // if(head->next)
+    //     free_list(head->next);
+    // free(head);
+    // head = NULL;
+    while (head) {
+        node_t *tmp = head;
+        head = head->next;
+        free(tmp);
+        tmp = NULL;
+    }
+}
+
+int sizeof_list(node_t *head)
+{
+    int count = 0;
+    for (node_t *iter = head; iter; iter = iter->next)
+        count++;
+    return count;
 }
