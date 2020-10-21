@@ -31,5 +31,5 @@ debug:
 	gdb -q --args $(EXE) $(INPUT) $(OUTPUT)
 
 clean:
-	rm -f $(OUTDIR)/* ./$(EXE)
+	rm -f $(OUTDIR)/* ./$(EXE) ./$(OUTPUT)
 	rmdir ./$(OUTDIR)
