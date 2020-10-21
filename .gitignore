@@ -1,5 +1,6 @@
 .out/
 .vscode/
 quine_mccluskey
+*.pdf
 hw1.o
 sample_output
