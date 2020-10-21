@@ -92,15 +92,6 @@ void get_set(char *str, node_t **head, int var_nums)
     }
 }
 
-void free_mem()
-{
-    free_list(cares);
-    free_list(dont_cares);
-    free_list(min_covers);
-    free_list(prime_implicants);
-    free_map(hmap, var_nums);
-}
-
 void write_minterms(char *output_file,
                     node_t *minterms,
                     char *prefix,
@@ -120,4 +111,13 @@ void write_minterms(char *output_file,
         fprintf(fp, "\n");
     free(buf);
     fclose(fp);
+}
+
+void free_mem()
+{
+    free_list(cares);
+    free_list(dont_cares);
+    free_list(min_covers);
+    free_list(prime_implicants);
+    free_map(hmap, var_nums);
 }

@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-
 void init_hmap_col(node_t ***hmap_col, int n)
 {
     *hmap_col = malloc((n + 1) * sizeof(node_t *));
@@ -44,17 +43,6 @@ int is_mergeable(uint a, uint b)
     return 0;
 }
 
-uint merge_minterms(uint a, uint b)
-{
-    uint m = 0;
-    int diff_bit = ffs((a & MASK_EXPRESSION) ^ (b & MASK_EXPRESSION)) - 1;
-
-    m |= ((a & MASK_EXPRESSION) & (MASK_EXPRESSION ^ (1 << diff_bit)));
-    m |=
-        ((a & MASK_DC_STAT) & (MASK_DC_STAT ^ (1 << (diff_bit + DC_STAT_POS))));
-    return m;
-}
-
 int pattern_is_equal(uint a, uint b)
 {
     return diff_bits(a, b) ? 0 : 1;
@@ -73,75 +61,6 @@ int count_set_bit(int n)
         n &= n - 1;
     }
     return count;
-}
-
-void print_hmap(node_t ***hmap, int n, FILE *stream)
-{
-    for (int i = 0; i < n; i++) {
-        if (hmap[i]) {
-            fprintf(stream, "hmap[%d]:\n", i);
-            print_hmap_col(hmap[i], n, stream);
-        }
-    }
-}
-
-void print_hmap_col(node_t **row, int n, FILE *stream)
-{
-    for (int i = 0; i <= n; i++) {
-        fprintf(stream, "\t[%d]: ", i);
-        print_list_minterm(row[i], n, 0, ' ', stream);
-    }
-}
-
-void free_map(node_t ***map, int n)
-{
-    for (int i = 0; i < n; i++) {
-        if (map[i]) {
-            // there are n+1 list in each column
-            free_map_col(&map[i], n + 1);
-        }
-    }
-}
-
-void free_map_col(node_t ***col, int n)
-{
-    for (int i = 0; i < n; i++)
-        if ((*col)[i])
-            free_list((*col)[i]);
-    free(*col);
-    *col = NULL;
-}
-
-void print_list_minterm(node_t *head,
-                        int n,
-                        int var_style,
-                        char end,
-                        FILE *stream)
-{
-    for (node_t *iter = head; iter; iter = iter->next) {
-        print_minterm(iter->val, n, var_style, stream);
-        fprintf(stream, "%c", end);
-    }
-}
-
-void print_minterm(uint encode, int n, int var_style, FILE *stream)
-{
-    uint exp = (encode & MASK_EXPRESSION);
-    uint dc = (encode & MASK_DC_STAT) >> DC_STAT_POS;
-    char VARIABLE[10] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'};
-    for (int i = n - 1; i >= 0; i--) {
-        if (dc & (1 << i)) {
-            if (exp & (1 << i)) {
-                (var_style) ? fprintf(stream, "%c", VARIABLE[n - 1 - i])
-                            : fprintf(stream, "1");
-            } else {
-                (var_style) ? fprintf(stream, "%c\'", VARIABLE[n - 1 - i])
-                            : fprintf(stream, "0");
-            }
-        } else if (!var_style) {
-            fprintf(stream, "-");
-        }
-    }
 }
 
 void run_mccluskey(node_t ***hmap, int n, node_t **prime_implicants)
@@ -294,33 +213,25 @@ void find_minimal_cover(node_t **cover, node_t **pis, node_t **cares, int n)
     free_sets(S, pi_num);
 }
 
-void free_sets(set *a, int size)
+uint merge_minterms(uint a, uint b)
 {
-    for (int i = 0; i < size; i++) {
-        free_set_content(a + i);
-    }
-    free(a);
-    a = NULL;
+    uint m = 0;
+    int diff_bit = ffs((a & MASK_EXPRESSION) ^ (b & MASK_EXPRESSION)) - 1;
+
+    m |= ((a & MASK_EXPRESSION) & (MASK_EXPRESSION ^ (1 << diff_bit)));
+    m |=
+        ((a & MASK_DC_STAT) & (MASK_DC_STAT ^ (1 << (diff_bit + DC_STAT_POS))));
+    return m;
 }
 
-void free_set_content(set *a)
+int cost_minterms(node_t *head, int n)
 {
-    if (a->eles)
-        free(a->eles);
-    if (a->covered)
-        free(a->covered);
-    a->eles = NULL;
-    a->covered = NULL;
-}
-
-void free_2d_array(void **ptr, int rows)
-{
-    for (int i = 0; i < rows; i++) {
-        free(ptr[i]);
-        ptr[i] = NULL;
+    int cost = 0;
+    for (node_t *iter = head; iter; iter = iter->next) {
+        cost +=
+            (n - count_set_bit(~((iter->val & MASK_DC_STAT) | ~MASK_DC_STAT)));
     }
-    free(ptr);
-    ptr = NULL;
+    return cost;
 }
 
 set appr_min_set_cover(set u, set *s, int n)
@@ -367,6 +278,29 @@ int compare_float(const void *a, const void *b)
     return (fa->cost > fb->cost) - (fa->cost < fb->cost);
 }
 
+/*
+ * test wether a is coverd by b.
+ * a would not consider any don't-care variables
+ */
+bool is_covered(uint a, uint b)
+{
+    a &= MASK_EXPRESSION;
+    uint exp_a = a & MASK_EXPRESSION, exp_b = b & MASK_EXPRESSION;
+    uint dc_b = (b & MASK_DC_STAT) >> DC_STAT_POS;
+    if (pattern_is_equal(a, b))
+        return true;
+    else {
+        int diff_num = diff_bits(exp_a, exp_b);
+        uint xored = exp_a ^ exp_b;
+        for (int i = 0; i < diff_num; i++) {
+            if (dc_b & 1 << (ffs(xored) - 1))
+                return false;
+            xored &= (xored - 1);
+        }
+        return true;
+    }
+}
+
 bool **build_cover_matrix(node_t *cares, node_t *pis, int care_num, int pi_num)
 {
     bool **terms_covered = malloc(pi_num * sizeof(bool *));
@@ -403,35 +337,100 @@ bool **build_cover_matrix(node_t *cares, node_t *pis, int care_num, int pi_num)
     return terms_covered;
 }
 
-/*
- * test wether a is coverd by b.
- * a would not consider any don't-care variables
- */
-bool is_covered(uint a, uint b)
+void print_hmap(node_t ***hmap, int n, FILE *stream)
 {
-    a &= MASK_EXPRESSION;
-    uint exp_a = a & MASK_EXPRESSION, exp_b = b & MASK_EXPRESSION;
-    uint dc_b = (b & MASK_DC_STAT) >> DC_STAT_POS;
-    if (pattern_is_equal(a, b))
-        return true;
-    else {
-        int diff_num = diff_bits(exp_a, exp_b);
-        uint xored = exp_a ^ exp_b;
-        for (int i = 0; i < diff_num; i++) {
-            if (dc_b & 1 << (ffs(xored) - 1))
-                return false;
-            xored &= (xored - 1);
+    for (int i = 0; i < n; i++) {
+        if (hmap[i]) {
+            fprintf(stream, "hmap[%d]:\n", i);
+            print_hmap_col(hmap[i], n, stream);
         }
-        return true;
     }
 }
 
-int cost_minterms(node_t *head, int n)
+void print_hmap_col(node_t **row, int n, FILE *stream)
 {
-    int cost = 0;
-    for (node_t *iter = head; iter; iter = iter->next) {
-        cost +=
-            (n - count_set_bit(~((iter->val & MASK_DC_STAT) | ~MASK_DC_STAT)));
+    for (int i = 0; i <= n; i++) {
+        fprintf(stream, "\t[%d]: ", i);
+        print_list_minterm(row[i], n, 0, ' ', stream);
     }
-    return cost;
+}
+
+void print_list_minterm(node_t *head,
+                        int n,
+                        int var_style,
+                        char end,
+                        FILE *stream)
+{
+    for (node_t *iter = head; iter; iter = iter->next) {
+        print_minterm(iter->val, n, var_style, stream);
+        fprintf(stream, "%c", end);
+    }
+}
+
+void print_minterm(uint encode, int n, int var_style, FILE *stream)
+{
+    uint exp = (encode & MASK_EXPRESSION);
+    uint dc = (encode & MASK_DC_STAT) >> DC_STAT_POS;
+    char VARIABLE[10] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'};
+    for (int i = n - 1; i >= 0; i--) {
+        if (dc & (1 << i)) {
+            if (exp & (1 << i)) {
+                (var_style) ? fprintf(stream, "%c", VARIABLE[n - 1 - i])
+                            : fprintf(stream, "1");
+            } else {
+                (var_style) ? fprintf(stream, "%c\'", VARIABLE[n - 1 - i])
+                            : fprintf(stream, "0");
+            }
+        } else if (!var_style) {
+            fprintf(stream, "-");
+        }
+    }
+}
+
+void free_map(node_t ***map, int n)
+{
+    for (int i = 0; i < n; i++) {
+        if (map[i]) {
+            // there are n+1 list in each column
+            free_map_col(&map[i], n + 1);
+        }
+    }
+}
+
+void free_map_col(node_t ***col, int n)
+{
+    for (int i = 0; i < n; i++)
+        if ((*col)[i])
+            free_list((*col)[i]);
+    free(*col);
+    *col = NULL;
+}
+
+void free_2d_array(void **ptr, int rows)
+{
+    for (int i = 0; i < rows; i++) {
+        free(ptr[i]);
+        ptr[i] = NULL;
+    }
+    free(ptr);
+    ptr = NULL;
+}
+
+void free_sets(set *a, int size)
+{
+    for (int i = 0; i < size; i++) {
+        free_set_content(a + i);
+    }
+    free(a);
+    a = NULL;
+}
+
+void free_set_content(set *a)
+{
+    if (a->eles)
+        free(a->eles);
+    if (a->covered)
+        free(a->covered);
+    a->eles = NULL;
+    a->covered = NULL;
 }
