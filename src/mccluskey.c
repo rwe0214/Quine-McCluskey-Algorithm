@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <strings.h>
 
 void init_hmap_col(node_t ***hmap_col, int n)
 {

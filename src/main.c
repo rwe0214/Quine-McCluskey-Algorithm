@@ -106,7 +106,7 @@ void write_minterms(char *output_file,
     fprintf(fp, "%s %d\n", prefix, sizeof_list(minterms));
     print_list_minterm(minterms, var_nums, 0, '\n', fp);
     if (prefix[1] == 'm' && prefix[2] == 'c')
-        fprintf(fp, "cost=%d", cost_minterms(minterms, var_nums));
+        fprintf(fp, "cost=%d\n", cost_minterms(minterms, var_nums));
     else
         fprintf(fp, "\n");
     free(buf);

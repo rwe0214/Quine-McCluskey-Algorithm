@@ -1,7 +1,7 @@
 SRCDIR = src
 OUTDIR ?= .out
 CC	= gcc
-CFLAGS	=-g -Wall
+CFLAGS	=-std=c11 -g -Wall
 
 SRCS = $(wildcard $(SRCDIR)/*.c)
 OBJS = $(patsubst $(SRCDIR)/%.c, $(OUTDIR)/%.o, $(SRCS)) 
