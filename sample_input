@@ -1,5 +1,5 @@
-.i 4 /* the function f has 4 input variables: A,B,C,D. */
+.i 5 /* the function f has 4 input variables: A,B,C,D. */
 .m /* on set */
-1 2 8 12 14
+2 12 16 19 29
 .d /* don't care set */ 
-6 10 11 15
+7 8 9 20 24

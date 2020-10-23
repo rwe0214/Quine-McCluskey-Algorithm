@@ -76,12 +76,12 @@ void run_mccluskey(node_t ***hmap, int n, node_t **prime_implicants)
             fprintf(stderr, "[%d][%d]\n", i, j);
             for (node_t *a = hmap[i][j]; a; a = a->next) {
                 fprintf(stderr, "\ta = ");
-                print_minterm(a->val, 4, 0, stderr);
+                print_minterm(a->val, n, 0, stderr);
                 fprintf(stderr, "\n");
                 node_t *b = hmap[i][j + 1];
                 while (b) {
                     fprintf(stderr, "\tfind b = ");
-                    print_minterm(b->val, 4, 0, stderr);
+                    print_minterm(b->val, n, 0, stderr);
                     fprintf(stderr, "\n");
                     if (is_mergeable(a->val, b->val)) {
                         a->val |= MASK_MERGED;
@@ -119,6 +119,7 @@ void run_mccluskey(node_t ***hmap, int n, node_t **prime_implicants)
                         add_entry(prime_implicants, iter->val);
                 }
             }
+            break;
         }
     }
     fprintf(stderr, "################ end #################\n");
@@ -128,7 +129,7 @@ void find_minimal_cover(node_t **cover, node_t **pis, node_t **cares, int n)
 {
     fprintf(stderr, "\n####### find minimal set cover #######\n");
     int care_num = sizeof_list(*cares), pi_num = sizeof_list(*pis);
-    bool **terms_covered = build_cover_matrix(*cares, *pis, care_num, pi_num);
+    bool **terms_covered = build_cover_matrix(*cares, *pis, care_num, pi_num, n);
 
     // find essential prime implicants
     node_t *covered_minterm;
@@ -173,7 +174,7 @@ void find_minimal_cover(node_t **cover, node_t **pis, node_t **cares, int n)
     care_num = sizeof_list(*cares);
     pi_num = sizeof_list(*pis);
     fprintf(stderr, "-------------------------------------\n");
-    terms_covered = build_cover_matrix(*cares, *pis, care_num, pi_num);
+    terms_covered = build_cover_matrix(*cares, *pis, care_num, pi_num, n);
 
 
     // mapping to minimal set cover problem
@@ -197,9 +198,9 @@ void find_minimal_cover(node_t **cover, node_t **pis, node_t **cares, int n)
             }
         }
         S[i].size = (k) ? k : -1;
-        S[i].cost = n - diff_bits((find_kth_entry(*pis, i) & MASK_DC_STAT),
+        S[i].var_size = n - diff_bits((find_kth_entry(*pis, i) & MASK_DC_STAT),
                                   MASK_DC_STAT);
-        S[i].cost /= S[i].size;
+        S[i].cost = S[i].var_size/S[i].size;
     }
 
     // solve minimal set cover problem
@@ -241,25 +242,51 @@ set appr_min_set_cover(set u, set *s, int n)
     set min_set;
     min_set.eles = malloc(n * sizeof(uint));
     min_set.covered = NULL;
-    qsort(s, n, sizeof(set), compare_float);
     int l = 0;
     for (int i = 0; i < n; i++) {
+        qsort(s, n, sizeof(set), compare_float);
         if (s[i].cost <= 0)
             continue;
-
+        fprintf(stderr, "pick: ");
+        print_minterm(s[i].name, 5, 0, stderr);
+        fprintf(stderr, "\n");
         bool add_set = false;
         for (int j = 0; j < s[i].size; j++) {
             for (int k = 0; k < u.size; k++) {
                 if (!u.covered[k] &&
                     pattern_is_equal(u.eles[k], (s[i].eles)[j])) {
                     add_set = u.covered[k] = true;
+                    j = s[i].size;
                     break;
                 }
             }
         }
 
-        if (add_set)
-            min_set.eles[l++] = s[i].name;
+        if (add_set){
+            for(int j=0; j<n; j++){
+                if (j==i)
+                    min_set.eles[l++] = s[j].name;
+                else{
+                    int repeat = 0;
+                    for (int k=0; k<s[j].size; k++){
+                        for(int m=0; m<s[i].size; m++){
+                            if((s[j].eles)[k] == (s[i].eles)[m]){
+                                repeat++;
+                                break;
+                            }
+                        }
+                    }
+                    s[j].size = ((s[j].size-repeat) == 0)?-1:(s[j].size-repeat);
+                    s[j].cost = s[j].var_size/s[j].size;
+                    fprintf(stderr, "\tmodify weight ");
+                    print_minterm(s[j].name, 5, 0, stderr);
+                    fprintf(stderr, ": ");
+                    fprintf(stderr, "%f\n", s[j].cost);
+                }
+
+            }
+            
+        }
 
         bool stop = true;
         for (int j = 0; j < u.size; j++) {
@@ -303,7 +330,7 @@ bool is_covered(uint a, uint b)
     }
 }
 
-bool **build_cover_matrix(node_t *cares, node_t *pis, int care_num, int pi_num)
+bool **build_cover_matrix(node_t *cares, node_t *pis, int care_num, int pi_num, int n)
 {
     bool **terms_covered = malloc(pi_num * sizeof(bool *));
     assert(terms_covered);
@@ -315,7 +342,7 @@ bool **build_cover_matrix(node_t *cares, node_t *pis, int care_num, int pi_num)
     // build coverd matrix
     fprintf(stderr, "     ");
     for (node_t *a = cares; a; a = a->next) {
-        print_minterm(a->val, 4, 0, stderr);
+        print_minterm(a->val, n, 0, stderr);
         fprintf(stderr, " ");
     }
     fprintf(stderr, "\n");
@@ -324,7 +351,7 @@ bool **build_cover_matrix(node_t *cares, node_t *pis, int care_num, int pi_num)
     i = 0;
     for (node_t *b = pis; b; b = b->next) {
         j = 0;
-        print_minterm(b->val, 4, 0, stderr);
+        print_minterm(b->val, n, 0, stderr);
         fprintf(stderr, " ");
         for (node_t *a = cares; a; a = a->next) {
             terms_covered[i][j] = is_covered(a->val, b->val);

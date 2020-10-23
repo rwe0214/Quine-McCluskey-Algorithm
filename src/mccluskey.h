@@ -25,6 +25,7 @@ typedef struct SET {
     uint *eles;
     bool *covered;
     int size;
+    int var_size;
     float cost;
 } set;
 
@@ -46,7 +47,7 @@ int cost_minterms(node_t *, int);
 set appr_min_set_cover(set, set *, int);
 int compare_float(const void *, const void *);
 bool is_covered(uint, uint);
-bool **build_cover_matrix(node_t *, node_t *, int, int);
+bool **build_cover_matrix(node_t *, node_t *, int, int, int);
 
 void print_hmap(node_t ***, int, FILE *);
 void print_hmap_col(node_t **, int, FILE *);
