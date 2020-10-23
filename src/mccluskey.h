@@ -25,6 +25,7 @@ typedef struct SET {
     uint *eles;
     bool *covered;
     int size;
+    int var_size;
     float cost;
 } set;
 

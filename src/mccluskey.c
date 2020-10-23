@@ -107,6 +107,7 @@ void run_mccluskey(node_t ***hmap, int n, node_t **prime_implicants)
                         add_entry(prime_implicants, iter->val);
                 }
             }
+            break;
         }
     }
 }
@@ -182,9 +183,9 @@ void find_minimal_cover(node_t **cover, node_t **pis, node_t **cares, int n)
             }
         }
         S[i].size = (k) ? k : -1;
-        S[i].cost = n - diff_bits((find_kth_entry(*pis, i) & MASK_DC_STAT),
+        S[i].var_size = n - diff_bits((find_kth_entry(*pis, i) & MASK_DC_STAT),
                                   MASK_DC_STAT);
-        S[i].cost /= S[i].size;
+        S[i].cost = S[i].var_size/S[i].size;
     }
 
     // solve minimal set cover problem
@@ -225,25 +226,42 @@ set appr_min_set_cover(set u, set *s, int n)
     set min_set;
     min_set.eles = malloc(n * sizeof(uint));
     min_set.covered = NULL;
-    qsort(s, n, sizeof(set), compare_float);
     int l = 0;
     for (int i = 0; i < n; i++) {
+        qsort(s, n, sizeof(set), compare_float);
         if (s[i].cost <= 0)
             continue;
-
         bool add_set = false;
         for (int j = 0; j < s[i].size; j++) {
             for (int k = 0; k < u.size; k++) {
                 if (!u.covered[k] &&
                     pattern_is_equal(u.eles[k], (s[i].eles)[j])) {
                     add_set = u.covered[k] = true;
+                    j = s[i].size;
                     break;
                 }
             }
         }
 
-        if (add_set)
-            min_set.eles[l++] = s[i].name;
+        if (add_set){
+            for(int j=0; j<n; j++){
+                if (j==i)
+                    min_set.eles[l++] = s[j].name;
+                else{
+                    int repeat = 0;
+                    for (int k=0; k<s[j].size; k++){
+                        for(int m=0; m<s[i].size; m++){
+                            if((s[j].eles)[k] == (s[i].eles)[m]){
+                                repeat++;
+                                break;
+                            }
+                        }
+                    }
+                    s[j].size = ((s[j].size-repeat) == 0)?-1:(s[j].size-repeat);
+                    s[j].cost = s[j].var_size/s[j].size;
+                }
+            }
+        }
 
         bool stop = true;
         for (int j = 0; j < u.size; j++) {
