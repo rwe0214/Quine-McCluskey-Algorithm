@@ -141,7 +141,9 @@ void find_minimal_cover(node_t **cover, node_t **pis, node_t **cares, int n)
         if (count == 1) {
             for (int i = pi_num - 1; i >= 0; i--) {
                 if (terms_covered[i][j]) {
-                    add_entry(cover, find_kth_entry(*pis, i));
+                    uint pi = find_kth_entry(*pis, i);
+                    if (!find_entry(*cover, pi))
+                        add_entry(cover, pi);
                     for (int k = care_num - 1; k >= 0; k--) {
                         if (terms_covered[i][k]) {
                             uint minterm = find_kth_entry(*cares, k);
