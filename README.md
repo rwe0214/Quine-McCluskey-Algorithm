@@ -1,5 +1,5 @@
 # Quine-McCluskey-Algorithm
-
+###### tags: `GitHub`
 [![hackmd-github-sync-badge](https://hackmd.io/gK0PZAnDRjyi5IDyI5DGCQ/badge)](https://hackmd.io/gK0PZAnDRjyi5IDyI5DGCQ)
 
 
@@ -36,18 +36,18 @@ I used linked-list as my basic data structure instead of array, the reason is th
 
 The insertion of my linked-list is inserted at head, which could reduce $O(n)$ to $O(1)$ complexity.
 
-For the minterm structure, I used the $0^{th}-9^{th}$ bits for recording expression, the $10^{th}-19^{th}$ bits for recording the coressponding variable cared or not and the last bit, and the $31^{th}$ bit, for recording the minterm was merged with other expression or not, the bit map is shown below. 
+For the minterm structure, I used the $0^{th}-9^{th}$ bits for recording expression, the $10^{th}-19^{th}$ bits for recording the coressponding variable careable or not and the last bit, and the $31^{th}$ bit, for recording the minterm was merged with other expression or not, the bit map is shown below. 
 
 ```txt
 +--------------------------------------+
-| 31 |   30-20    |   19-10  |   9-0   |
+| 31|    30-20    |   19-10  |   9-0   |
 +--------------------------------------+
-merged  none-used   cared     expression
+merged  none-used   careable  expression
 ```
 
 
 
-The last part of the `Quine-McCluskey algorithm` is finding a minimal cost implicants set which could cover all the cared expression as given input. This problem could be mapped to the minimal set cover problem and it is an `NP-complete` problem.
+The last part of the `Quine-McCluskey algorithm` is finding a minimal cost implicants set which could cover all the carealbe expression as given input. This problem could be mapped to the minimal set cover problem and it is an `NP-complete` problem.
 
 I used an `approximated-greedy approach` which time complexity is only $O(\log n)$  instead of an exact approach, `Knuth's Algorithm X`, which is much more complex.
 
